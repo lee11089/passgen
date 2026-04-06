@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>密码生成器</title>
+<style>
+    body {
+        font-family: 'Microsoft YaHei', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 20px;
+        min-height: 100vh;
+    }
+    .main {
+        max-width: 1200px;
+        margin: 30px auto;
+        display: flex;
+        gap: 20px;
+    }
+    .container {
+        flex: 1;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    .right-panel {
+        width: 380px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+    }
+    h1 {
+        text-align: center;
+        color: #333;
+        padding: 20px 0;
+        margin: 0;
+        background: #f8f9fa;
+        font-size: 24px;
+    }
+    .content { padding: 30px; }
+    .password-box {
+        width: 100%;
+        min-height: 68px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 22px;
+        text-align: center;
+        line-height: 64px;
+        margin-bottom: 15px;
+        word-break: break-all;
+        background: #f8f9fa;
+        font-family: 'Consolas', monospace;
+    }
+    .control-group {
+        margin: 18px 0;
+    }
+    label { font-size: 15px; color: #444; }
+    input[type="range"] { accent-color: #667eea; width: 100%; }
+    button {
+        padding: 12px 24px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        margin: 5px;
+    }
+    .btn-generate { background: #667eea; color: white; }
+    .btn-batch { background: #ff9800; color: white; }
+    .btn-copy { background: #4caf50; color: white; }
+    .btn-copy-all { background: #2196f3; color: white; width: 100%; margin-top: 10px; }
+    .lang-switch {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        font-size: 14px;
+    }
+    .exclude-box {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 15px;
+    }
+    .batch-results {
+        flex: 1;
+        overflow-y: auto;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        max-height: 430px;
+    }
+    .batch-item {
+        background: white;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 6px;
+        font-family: 'Consolas', monospace;
+        word-break: break-all;
+        border-left: 4px solid #ff9800;
+    }
+    .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #333;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        opacity: 0;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+
+    /* 响应式适配 */
+    @media (max-width: 900px) {
+        .main {
+            flex-direction: column;
+        }
+        .right-panel {
+            width: 100%;
+            max-width: none;
+        }
+        .password-box {
+            font-size: 18px;
+            min-height: 60px;
+            line-height: 56px;
+        }
+        button {
+            padding: 14px 20px;
+            font-size: 15px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        body {
+            padding: 10px;
+        }
+        .content {
+            padding: 20px;
+        }
+        h1 {
+            font-size: 20px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="lang-switch" id="langBtn">EN</div>
+
+<div class="main">
+    <div class="container">
+        <h1 id="title">🔐 密码生成器</h1>
+        <div class="content">
+            <div class="password-box" id="password">点击生成密码</div>
+            
+            <button class="btn-copy" id="copyCurrentBtn" style="width:100%;margin-bottom:20px;">
+                📋 复制当前密码
+            </button>
+
+            <div class="control-group">
+                <label id="lengthLabel">密码长度：<span id="lengthValue">16</span></label>
+                <input type="range" id="length" min="8" max="32" value="16">
+            </div>
+
+            <div class="control-group">
+                <label id="countLabel">生成数量：<span id="countValue">5</span></label>
+                <input type="range" id="count" min="1" max="30" value="5">
+            </div>
+
+            <div class="control-group">
+                <label id="typeLabel">字符类型：</label>
+                <label><input type="checkbox" id="upper" checked> <span id="upperLabel">大写字母</span></label>
+                <label><input type="checkbox" id="lower" checked> <span id="lowerLabel">小写字母</span></label>
+                <label><input type="checkbox" id="number" checked> <span id="numberLabel">数字</span></label>
+                <label><input type="checkbox" id="symbol" checked> <span id="symbolLabel">特殊符号</span></label>
+            </div>
+
+            <div class="control-group">
+                <label id="excludeLabel">排除字符（默认已排除易混淆字符）：</label>
+                <input type="text" id="excludeChars" class="exclude-box" value="iIl1o0O|">
+                <small id="excludeTip" style="color:#666;">提示：输入要排除的字符，无需分隔</small>
+            </div>
+
+            <div style="text-align:center; margin-top:25px;">
+                <button class="btn-generate" id="singleBtn">生成单个密码</button>
+                <button class="btn-batch" id="batchBtn">批量生成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <h3 class="right-title" id="batchTitle">批量生成结果</h3>
+        <div class="batch-results" id="batchResults"></div>
+        <button class="btn-copy-all" id="copyAllBtn">一键复制所有密码</button>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const langBtn = document.getElementById('langBtn');
+let currentLang = 'zh';
+let batchPasswords = [];
+
+const texts = {
+    zh: {
+        title: "🔐 密码生成器",
+        lengthLabel: "密码长度：",
+        countLabel: "生成数量：",
+        typeLabel: "字符类型：",
+        upperLabel: "大写字母",
+        lowerLabel: "小写字母",
+        numberLabel: "数字",
+        symbolLabel: "特殊符号",
+        excludeLabel: "排除字符（默认已排除易混淆字符）：",
+        excludeTip: "提示：输入要排除的字符，无需分隔",
+        singleBtn: "生成单个密码",
+        batchBtn: "批量生成",
+        copyCurrent: "📋 复制当前密码",
+        copyAll: "一键复制所有密码",
+        batchTitle: "批量生成结果",
+        passwordPlaceholder: "点击生成密码",
+        copyCurrentToast: "已复制当前密码",
+        copyAllToast: "个密码已复制",
+        noPassword: "请先生成密码！",
+        noBatch: "还没有生成批量密码！"
+    },
+    en: {
+        title: "🔐 Password Generator",
+        lengthLabel: "Password Length:",
+        countLabel: "Generate Count:",
+        typeLabel: "Character Types:",
+        upperLabel: "Uppercase",
+        lowerLabel: "Lowercase",
+        numberLabel: "Numbers",
+        symbolLabel: "Symbols",
+        excludeLabel: "Exclude Characters:",
+        excludeTip: "Tip: Enter characters to exclude (no separator needed)",
+        singleBtn: "Generate Single",
+        batchBtn: "Batch Generate",
+        copyCurrent: "📋 Copy Current Password",
+        copyAll: "Copy All Passwords",
+        batchTitle: "Batch Results",
+        passwordPlaceholder: "Click to generate password",
+        copyCurrentToast: "Current password copied",
+        copyAllToast: "passwords copied",
+        noPassword: "Please generate a password first!",
+        noBatch: "No batch passwords generated yet!"
+    }
+};
+
+function updateSliders() {
+    const lengthSlider = document.getElementById('length');
+    const countSlider = document.getElementById('count');
+    const lengthValue = document.getElementById('lengthValue');
+    const countValue = document.getElementById('countValue');
+
+    lengthSlider.oninput = () => lengthValue.textContent = lengthSlider.value;
+    countSlider.oninput = () => countValue.textContent = countSlider.value;
+}
+
+function switchLanguage() {
+    currentLang = currentLang === 'zh' ? 'en' : 'zh';
+    const t = texts[currentLang];
+    
+    document.getElementById('title').textContent = t.title;
+    document.getElementById('lengthLabel').childNodes[0].textContent = t.lengthLabel;
+    document.getElementById('countLabel').childNodes[0].textContent = t.countLabel;
+    document.getElementById('typeLabel').textContent = t.typeLabel;
+    document.getElementById('upperLabel').textContent = t.upperLabel;
+    document.getElementById('lowerLabel').textContent = t.lowerLabel;
+    document.getElementById('numberLabel').textContent = t.numberLabel;
+    document.getElementById('symbolLabel').textContent = t.symbolLabel;
+    document.getElementById('excludeLabel').textContent = t.excludeLabel;
+    document.getElementById('excludeTip').textContent = t.excludeTip;
+    document.getElementById('singleBtn').textContent = t.singleBtn;
+    document.getElementById('batchBtn').textContent = t.batchBtn;
+    document.getElementById('copyCurrentBtn').textContent = t.copyCurrent;
+    document.getElementById('copyAllBtn').textContent = t.copyAll;
+    document.getElementById('batchTitle').textContent = t.batchTitle;
+    document.getElementById('password').textContent = t.passwordPlaceholder;
+
+    langBtn.textContent = currentLang === 'zh' ? 'EN' : '中';
+
+    document.getElementById('batchResults').innerHTML = '';
+    batchPasswords = [];
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    setTimeout(() => toast.style.opacity = '0', 2000);
+}
+
+function createPassword() {
+    const length = parseInt(document.getElementById('length').value);
+    const upper = document.getElementById('upper').checked;
+    const lower = document.getElementById('lower').checked;
+    const number = document.getElementById('number').checked;
+    const symbol = document.getElementById('symbol').checked;
+    let excludeStr = document.getElementById('excludeChars').value;
+
+    let chars = '';
+    if (upper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (lower) chars += 'abcdefghijklmnopqrstuvwxyz';
+    if (number) chars += '0123456789';
+    if (symbol) chars += '!@#$%^&*()_+-=[]{}|;:,.<>/?';
+
+    const excludeSet = new Set(excludeStr);
+    chars = chars.split('').filter(c => !excludeSet.has(c)).join('');
+
+    if (chars === '') return '';
+
+    let password = '';
+    for (let i = 0; i < length; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
+
+function generatePassword() {
+    const pwd = createPassword();
+    if (pwd) document.getElementById('password').textContent = pwd;
+}
+
+function batchGenerate() {
+    const count = parseInt(document.getElementById('count').value);
+    const resultsDiv = document.getElementById('batchResults');
+    resultsDiv.innerHTML = '';
+    batchPasswords = [];
+
+    for (let i = 0; i < count; i++) {
+        const pwd = createPassword();
+        if (!pwd) continue;
+        batchPasswords.push(pwd);
+
+        const item = document.createElement('div');
+        item.className = 'batch-item';
+        item.textContent = pwd;
+        resultsDiv.appendChild(item);
+    }
+}
+
+document.getElementById('singleBtn').onclick = generatePassword;
+document.getElementById('batchBtn').onclick = batchGenerate;
+
+document.getElementById('copyCurrentBtn').onclick = () => {
+    const pwd = document.getElementById('password').textContent;
+    const t = texts[currentLang];
+    if (pwd === t.passwordPlaceholder) {
+        showToast(t.noPassword);
+        return;
+    }
+    navigator.clipboard.writeText(pwd).then(() => showToast(t.copyCurrentToast));
+};
+
+document.getElementById('copyAllBtn').onclick = () => {
+    const t = texts[currentLang];
+    if (batchPasswords.length === 0) {
+        showToast(t.noBatch);
+        return;
+    }
+    const allText = batchPasswords.join('\n');
+    navigator.clipboard.writeText(allText).then(() => {
+        showToast(batchPasswords.length + t.copyAllToast);
+    });
+};
+
+langBtn.onclick = switchLanguage;
+
+window.onload = () => {
+    updateSliders();
+};
+</script>
+</body>
+</html>
